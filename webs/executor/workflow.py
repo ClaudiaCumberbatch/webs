@@ -213,11 +213,13 @@ class WorkflowExecutor:
     def __init__(
         self,
         compute_executor: Executor,
+        config,
         *,
         data_transformer: TaskDataTransformer[Any] | None = None,
         record_logger: RecordLogger | None = None,
     ) -> None:
         self.compute_executor = compute_executor
+        self.config = config
         self.data_transformer = (
             data_transformer
             if data_transformer is not None

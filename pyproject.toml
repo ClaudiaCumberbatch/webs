@@ -77,6 +77,7 @@ omit = [
     "examples",
     "webs/wf/cholesky/*",
     "webs/wf/docking/*",
+    "webs/wf/failure/*",
     "webs/wf/fedlearn/*",
     "webs/wf/mapreduce/*",
     "webs/wf/montage/*"
