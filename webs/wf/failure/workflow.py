@@ -60,18 +60,20 @@ class FailurerWorkflow(ContextManagerAddIn):
             run_dir: Run directory.
         """
         if random.random() < self.config.failure_rate:
-            task = executor.submit(fails)
+            if self.config.failure_type == 'random':
+                fail_task = random.choice(FAILURE_LIB.values())
+            elif self.config.failure_type in FAILURE_LIB.keys():
+                fail_task = FAILURE_LIB[self.config.failure_type]
+            else:
+                fail_task = FAILURE_LIB['simple']
+            
+            logger.log(WORK_LOG_LEVEL, f"Failure injected, function is {fail_task}")
+            task = executor.submit(fail_task)
             logger.log(
                 WORK_LOG_LEVEL,
                 f'failure task finish with result {task.result()}',
             )
         else:
-            # workflow = get_registered()[self.config.true_workflow].from_config(executor.config.workflow) # here config.workflow is a config instead of a workflow
-            # record_logger = JSONRecordLogger(executor.config.run.task_record_file_name)
-
-            # with workflow, record_logger, executor:
-            #     workflow.run(executor=executor, run_dir=run_dir)
-
             config_type = get_registered_workflow(self.config.true_workflow).config_type
             cfg = config_type(**default_config_dic)
 
