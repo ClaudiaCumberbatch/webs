@@ -75,8 +75,6 @@ def parse_args_to_config(argv: Sequence[str]) -> BenchmarkConfig:
                 required=True,
             )
 
-        failure_injection_parser.print_usage()
-    '''
     args = parser.parse_args(argv)
     options = vars(args)
 

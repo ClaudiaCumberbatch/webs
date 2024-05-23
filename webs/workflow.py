@@ -59,6 +59,7 @@ class Workflow(Protocol[WorkflowConfigT]):
 REGISTERED_WORKFLOWS = {
     'cholesky': 'webs.wf.cholesky.workflow.CholeskyWorkflow',
     'docking': 'webs.wf.docking.workflow.DockingWorkflow',
+    'failure-injection': 'webs.wf.failure.workflow.FailurerWorkflow',
     'fedlearn': 'webs.wf.fedlearn.workflow.FedLearnWorkflow',
     'mapreduce': 'webs.wf.mapreduce.workflow.MapreduceWorkflow',
     'moldesign': 'webs.wf.moldesign.workflow.MoldesignWorkflow',

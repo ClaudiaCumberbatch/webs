@@ -5,5 +5,3 @@ Calls other workflows but will inject failure according to the user defined conf
 
 '''
 from __future__ import annotations
-
-import webs.wf.failure.workflow
