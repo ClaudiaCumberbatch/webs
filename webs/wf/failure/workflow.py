@@ -42,6 +42,12 @@ default_config_dic = {
     'map_task_count': 5, 
 }
 
+def new_func(failure_rate, fail_task, success_task, *args, **kwargs):
+    if random.random() < failure_rate:
+        return fail_task()
+    else:
+        return success_task(*args, **kwargs)
+
 class FlawExecutor(WorkflowExecutor):
     def __init__(
             self, 
@@ -77,11 +83,13 @@ class FlawExecutor(WorkflowExecutor):
         *args: Any, 
         **kwargs: Any
     ) -> TaskFuture[T]:
-        if random.random() < self.failure_rate:
-            fail_task = self.get_fail_task()
-            return super().submit(fail_task)
-        else:
-            return super().submit(function, *args, **kwargs)
+        fail_task = self.get_fail_task()
+
+        logger.log(WORK_LOG_LEVEL, f"original function is {function}")
+        logger.log(WORK_LOG_LEVEL, f"fail task is {fail_task}")
+
+        logger.log(WORK_LOG_LEVEL, f"new func is {new_func}")
+        return super().submit(new_func, self.failure_rate, fail_task, function, *args, **kwargs)
 
 
 class FailurerWorkflow(ContextManagerAddIn):
@@ -120,6 +128,8 @@ class FailurerWorkflow(ContextManagerAddIn):
         random.seed(19491001)
         logger.log(WORK_LOG_LEVEL, f"Try to inject {self.config.failure_type} with rate {self.config.failure_rate}")
         
+        # TODO: WorkflowExecutor init twice, should only be once
+        # probably the cause of "Exception: attempt to clean up DFK when it has already been cleaned-up"
         flaw_executor = FlawExecutor(
             self.config.failure_rate,
             self.config.failure_type,
