@@ -55,40 +55,40 @@ class ParslConfig(ExecutorConfig):
         if self.parsl_use_threads:
             executor = ThreadPoolExecutor(max_threads=workers)
         else:
-            executor = HighThroughputExecutor(
-                label='htex-local',
-                max_workers=workers,
-                address=address_by_hostname(),
-                cores_per_worker=1,
-                provider=LocalProvider(
-                    channel=LocalChannel(),
-                    init_blocks=1,
-                    max_blocks=1,
-                ),
-                radio_mode="diaspora"
-            )
-            # worker_init='module load cpu/0.15.4; module load slurm; module load anaconda3/2020.11; source activate /home/szhou3/.conda/envs/parsl310'
-
             # executor = HighThroughputExecutor(
+            #     label='htex-local',
             #     max_workers=workers,
-            #     label="htex-local",
-            #     provider=SlurmProvider(
-            #         'debug', # 'compute'
-            #         account='cuw101',
-            #         launcher=SrunLauncher(),
-            #         # string to prepend to #SBATCH blocks in the submit
-            #         # script to the scheduler
-            #         scheduler_options='',
-            #         # Command to be run before starting a worker, such as:
-            #         # 'module load Anaconda; source activate parsl_env'.
-            #         worker_init=worker_init,
+            #     address=address_by_hostname(),
+            #     cores_per_worker=1,
+            #     provider=LocalProvider(
+            #         channel=LocalChannel(),
             #         init_blocks=1,
             #         max_blocks=1,
-            #         nodes_per_block=1,
             #     ),
-            #     block_error_handler=False,
             #     radio_mode="diaspora"
             # )
+            worker_init='module load cpu/0.15.4; module load slurm; module load anaconda3/2020.11; source activate /home/szhou3/.conda/envs/parsl310'
+
+            executor = HighThroughputExecutor(
+                max_workers=workers,
+                label="htex-local",
+                provider=SlurmProvider(
+                    'debug', # 'compute'
+                    account='cuw101',
+                    launcher=SrunLauncher(),
+                    # string to prepend to #SBATCH blocks in the submit
+                    # script to the scheduler
+                    scheduler_options='',
+                    # Command to be run before starting a worker, such as:
+                    # 'module load Anaconda; source activate parsl_env'.
+                    worker_init=worker_init,
+                    init_blocks=1,
+                    max_blocks=1,
+                    nodes_per_block=1,
+                ),
+                block_error_handler=False,
+                radio_mode="diaspora"
+            )
 
         return Config(
             executors=[executor], 
@@ -96,7 +96,7 @@ class ParslConfig(ExecutorConfig):
             strategy='none',
             resilience_strategy='fail_type',
             app_cache=True, checkpoint_mode='task_exit',
-            retries=1,
+            retries=3,
             monitoring=MonitoringHub(
                             hub_address="localhost",
                             monitoring_debug=False,
