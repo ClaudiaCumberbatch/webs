@@ -46,6 +46,28 @@ class ParslConfig(ExecutorConfig):
 
     def get_executor_config(self) -> Config:
         """Create a Parsl config from this config."""
+        def get_executor(label):
+            return HighThroughputExecutor(
+                max_workers=workers,
+                label=label,
+                provider=SlurmProvider(
+                    'debug', 
+                    account='cuw101',
+                    launcher=SrunLauncher(),
+                    # string to prepend to #SBATCH blocks in the submit
+                    # script to the scheduler
+                    scheduler_options='',
+                    # Command to be run before starting a worker, such as:
+                    # 'module load Anaconda; source activate parsl_env'.
+                    worker_init=worker_init,
+                    init_blocks=1,
+                    max_blocks=1,
+                    nodes_per_block=1,
+                ),
+                block_error_handler=False,
+                radio_mode="diaspora"
+            )
+        
         workers = (
             self.parsl_workers
             if self.parsl_workers is not None
@@ -67,33 +89,16 @@ class ParslConfig(ExecutorConfig):
             #     ),
             #     radio_mode="diaspora"
             # )
-            worker_init='module load cpu/0.15.4; module load slurm; module load anaconda3/2020.11; source activate /home/szhou3/.conda/envs/parsl310'
+            worker_init='module load cpu/0.15.4; module load slurm; module load anaconda3/2020.11; source activate /home/szhou3/.conda/envs/parsl311'
 
-            executor = HighThroughputExecutor(
-                max_workers=workers,
-                label="htex-local",
-                provider=SlurmProvider(
-                    'debug', # 'compute'
-                    account='cuw101',
-                    launcher=SrunLauncher(),
-                    # string to prepend to #SBATCH blocks in the submit
-                    # script to the scheduler
-                    scheduler_options='',
-                    # Command to be run before starting a worker, such as:
-                    # 'module load Anaconda; source activate parsl_env'.
-                    worker_init=worker_init,
-                    init_blocks=1,
-                    max_blocks=1,
-                    nodes_per_block=1,
-                ),
-                block_error_handler=False,
-                radio_mode="diaspora"
-            )
+            executor1 = get_executor("htex-1")
+            executor2 = get_executor("htex-2")
 
         return Config(
-            executors=[executor], 
+            executors=[executor1, executor2], 
+            # executors=[executor],
             run_dir=self.parsl_run_dir,
-            strategy='none',
+            # strategy='none',
             resilience_strategy='fail_type',
             app_cache=True, checkpoint_mode='task_exit',
             retries=3,
@@ -104,7 +109,7 @@ class ParslConfig(ExecutorConfig):
                             resource_monitoring_interval=1,
             ),
             usage_tracking=True,
-            retry_handler=resilient_retry
+            # retry_handler=resilient_retry
         )
 
     def get_executor(self) -> globus_compute_sdk.Executor:

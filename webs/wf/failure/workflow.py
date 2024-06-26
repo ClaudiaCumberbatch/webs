@@ -5,6 +5,7 @@ import logging
 import pathlib
 import random
 import sys
+import os
 from pydantic_core import PydanticUndefined
 
 from webs.data.transform import TaskDataTransformer
@@ -27,6 +28,10 @@ from typing import Any
 from typing import Callable
 from typing import TypeVar
 
+import multiprocessing
+from multiprocessing import Value
+import ctypes
+
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
     from typing import ParamSpec
 else:  # pragma: <3.10 cover
@@ -40,13 +45,48 @@ logger = logging.getLogger(__name__)
 default_config_dic = {
     'mode': 'random', 
     'map_task_count': 5, 
+    'dataset': str(pathlib.Path('data/moldesign/QM9-search.tsv').resolve()),
+    'initial-count': 4,
+    'batch-size': 4,
+    'search-count': 16
 }
+
+'''
+Fail-or-not Table with failure rate 25%, reach success:
+------------------------------------
+| task_id |  0 | 1 | 2 | 3 | 4 | 5 |
+------------------------------------
+|         |  1 | 1 | x | 1 | x |   | 
+|         |    |   | 1 |   | 1 |   |
+|         |    |   |   |   |   | 1 |
+----------------------------------------
+'''
+'''
+def new_func(submit_cnt, fail_task, success_task, *args, **kwargs):
+    # permanent
+    if fail_task is FAILURE_LIB['dependency'] or fail_task is FAILURE_LIB['divide_zero'] or fail_task is FAILURE_LIB['environment']:
+        return fail_task()
+
+    # sporadic
+    # TODO: tricky but useful...
+    file_path = '/home/szhou3/resilient_compute/test/result.txt'
+    if submit_cnt == 1:
+        open(file_path, 'w').close()
+
+    if os.path.getsize(file_path) == 0:
+        if submit_cnt == 3 or submit_cnt == 5:
+            with open(file_path, 'w') as file:
+                file.write(str(submit_cnt))
+            return fail_task()
+        
+    return success_task(*args, **kwargs)
+'''
 
 def new_func(failure_rate, fail_task, success_task, *args, **kwargs):
     if random.random() < failure_rate:
         return fail_task()
     else:
-        return success_task(*args, **kwargs)
+        return success_task(*args, **kwargs) 
 
 class FlawExecutor(WorkflowExecutor):
     def __init__(
@@ -61,6 +101,7 @@ class FlawExecutor(WorkflowExecutor):
         ) -> None:
         self.failure_rate = failure_rate
         self.failure_type = failure_type
+        self.submit_cnt = 0 # for certain failure choice
         super().__init__(
             compute_executor, 
             config, 
@@ -84,11 +125,8 @@ class FlawExecutor(WorkflowExecutor):
         **kwargs: Any
     ) -> TaskFuture[T]:
         fail_task = self.get_fail_task()
-
-        logger.log(WORK_LOG_LEVEL, f"original function is {function}")
-        logger.log(WORK_LOG_LEVEL, f"fail task is {fail_task}")
-
-        logger.log(WORK_LOG_LEVEL, f"new func is {new_func}")
+        # self.submit_cnt += 1
+        # return super().submit(new_func, self.submit_cnt, fail_task, function, *args, **kwargs)
         return super().submit(new_func, self.failure_rate, fail_task, function, *args, **kwargs)
 
 
